@@ -40,6 +40,8 @@ typedef std::map< std::string, EntityVec >::value_type     RelationMap_pair ;
 class Entity
 {
   private :
+    static const std::string Unknown;
+
     uint32_t       _id ;
     MetaMap        _meta ;
     RelationMap    _links ;
@@ -94,12 +96,14 @@ class Entity
     const std::string &name() { 
                      MetaMap_iter  it = _meta.find( "firstname" ) ; 
                      if ((it == _meta.end()) || ((*it).second.size() == 0))
-                       return "unknown" ;
+                       return Unknown ;
                      return ((*it).second)[0] ;
                    }
 
     uint32_t       id() const { return _id ; }
 } ; // class Entity
+
+std::string const Entity::Unknown = std::string("unknown");
 
 typedef std::map< uint32_t, Entity* >               EntityMap ;
 typedef std::map< uint32_t, Entity* >::iterator     EntityMap_iter ;
