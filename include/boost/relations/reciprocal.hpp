@@ -88,6 +88,8 @@ class ReciprocalMgr
                      ReciprocalVec  &vec( get( a ) ) ;
                      vec.push_back( Reciprocal( b, meta_key, meta_value ) ) ;
                    }
+
+    uint32_t       size() const { return _ties.size(); }
 } ; // class ReciprocalMgr
 
 }} ; // namespace

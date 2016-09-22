@@ -27,6 +27,10 @@ typedef std::map< std::string, MetaVec >                   MetaMap ;
 typedef std::map< std::string, MetaVec >::iterator         MetaMap_iter ;
 typedef std::map< std::string, MetaVec >::value_type       MetaMap_pair ;
 
+typedef std::map<Entity*, std::string>                     EntityRelationMap ;
+typedef std::map<Entity*, std::string>::iterator           EntityRelationMap_iter ;
+typedef std::map<Entity*, std::string>::value_type         EntityRelationMap_pair ;
+
 typedef std::vector<Entity*>                               EntityVec ;
 typedef std::vector<Entity*>::iterator                     EntityVec_iter ;
 
@@ -46,18 +50,32 @@ class Entity
     MetaMap        _meta ;
     RelationMap    _links ;
 
+    bool           vec_exists( EntityVec &v, Entity *e )
+                   {  return (std::find(v.begin(), v.end(), e) != v.end()) ;
+                   }
+    bool           vec_exists( MetaVec &v, const std::string &e )
+                   {  return (std::find(v.begin(), v.end(), e) != v.end()) ;
+                   }
+
   public  :
                    Entity( uint32_t id_ ) 
                    {
                      _id = id_ ;
                    }
 
+    bool           is_linked( const std::string &type_, Entity &other ) 
+                   {
+                     RelationMap_iter  it = _links.find( type_ ) ;
+                     if (it == _links.end())
+                       return false ;
+                     return (vec_exists( (*it).second, &other )) ;
+                   }
     void           link( const std::string &type_, Entity &other ) 
                    {
                      RelationMap_iter  it = _links.find( type_ ) ;
                      if (it == _links.end())
                        _links.insert(RelationMap_pair( type_, { &other } )) ;
-                     else
+                     else if (vec_exists( (*it).second, &other ) == false)
                        (*it).second.push_back( &other ) ;
                    }
     void           meta( const std::string &name, const std::string &value ) 
@@ -65,7 +83,7 @@ class Entity
                      MetaMap_iter  it = _meta.find( name ) ;
                      if (it == _meta.end())
                        _meta.insert(MetaMap_pair( name, { value } )) ;
-                     else
+                     else if (vec_exists( (*it).second, value ) == false)
                        (*it).second.push_back( value ) ;
                    }
     void           meta( const std::vector< std::string > &pairs ) 
@@ -100,6 +118,78 @@ class Entity
                      return ((*it).second)[0] ;
                    }
 
+    void           find_relations( EntityRelationMap &data, const std::string &path )
+                   {
+                     EntityRelationMap_iter   dit ;
+                     RelationMap_iter         it ;
+
+                     // parent
+                     if ((it = _links.find( "parent" )) != _links.end())
+                     {
+                       for (EntityVec_iter eit = (*it).second.begin(); eit != (*it).second.end(); eit++)
+                       {
+                         dit = data.find( (*eit) ) ;
+                         if (dit == data.end())
+                         {
+                           // new entity
+                           data.insert( EntityRelationMap_pair( (*eit), path + 'c' )) ;
+                           (*eit)->find_relations( data, path + 'c' ) ;
+                         }
+                       }
+                     }
+
+                     // child
+                     if ((it = _links.find( "child" )) != _links.end())
+                     {
+                       for (EntityVec_iter eit = (*it).second.begin(); eit != (*it).second.end(); eit++)
+                       {
+                         dit = data.find( (*eit) ) ;
+                         if (dit == data.end())
+                         {
+                           // new entity
+                           data.insert( EntityRelationMap_pair( (*eit), path + 'p' )) ;
+                           (*eit)->find_relations( data, path + 'p' ) ;
+                         }
+                       }
+                     }
+
+                     // sibling
+                     if ((it = _links.find( "sibling" )) != _links.end())
+                     {
+                       for (EntityVec_iter eit = (*it).second.begin(); eit != (*it).second.end(); eit++)
+                       {
+                         dit = data.find( (*eit) ) ;
+                         if (dit == data.end())
+                         {
+                           // new entity
+                           data.insert( EntityRelationMap_pair( (*eit), path + 's' )) ;
+                           (*eit)->find_relations( data, path + 's' ) ;
+                         }
+                       }
+                     }
+
+                     // spouse
+                     if ((it = _links.find( "spouse" )) != _links.end())
+                     {
+                       for (EntityVec_iter eit = (*it).second.begin(); eit != (*it).second.end(); eit++)
+                       {
+                         dit = data.find( (*eit) ) ;
+                         if (dit == data.end())
+                         {
+                           // new entity
+                           data.insert( EntityRelationMap_pair( (*eit), path + 'S' )) ;
+                           // stop traversing at spouse
+//                           (*eit)->find_relations( data, path + 's' ) ;
+                         }
+                       }
+                     }
+                   }
+    void           find_relations( EntityRelationMap &data )
+                   {
+                     std::string  path( "" ) ;
+                     find_relations( data, path ) ;
+                   }
+
     uint32_t       id() const { return _id ; }
 } ; // class Entity
 
@@ -118,6 +208,8 @@ class EntityMgr
     EntityMap           _entities ;
 
   public  :
+                        EntityMgr() {}
+
     Entity             &get( uint32_t id ) 
                         {
                           EntityMap_iter  it = _entities.find( id ) ;
@@ -129,6 +221,15 @@ class EntityMgr
                           }
                           
                           return *(*it).second ;
+                        }
+
+    uint32_t            size() const { return _entities.size(); }
+    uint32_t            total_relations()
+                        {
+                          uint32_t total = 0;
+                          for (EntityMap_iter it = _entities.begin(); it != _entities.end(); it++)
+                            total += (*(*it).second).relations().size();
+                          return total;
                         }
 } ; // class EntityMgr
 
