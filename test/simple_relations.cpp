@@ -233,6 +233,8 @@ void list_relations()
 
   std::string  a, b, is_the ;
 
+  printf( "\n" ) ;
+  printf( "--[  fred's relation-to  ]--------\n" ) ;
   for (it = links.begin(); it != links.end(); it++)
   {
     for (it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++)
@@ -243,7 +245,7 @@ void list_relations()
       is_the = (*it).first ;
       b      = (*it2)->name() ;
       
-      printf( "%s   %s   %s \n", a.c_str(), is_the.c_str(), b.c_str() ) ;
+      printf( "  %-10s  %s \n", b.c_str(), is_the.c_str() ) ;
     }
   }
 
@@ -265,7 +267,7 @@ void list_relations()
       a      = (*it3).first->name() ;
       is_the = (*it3).second ;
 
-      printf( "  %10s  %s \n", a.c_str(), english_like( is_the, *(*it3).first ).c_str() ) ;
+      printf( "  %-10s  %s \n", a.c_str(), english_like( is_the, *(*it3).first ).c_str() ) ;
     }
   }
 
